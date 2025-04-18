@@ -3,7 +3,44 @@
 #include <regex>
 #include <string>
 #include <cstdlib>;
-#include <windows.h>;
+#include <windows.h>
+
+bool isValidChar(char c) {
+    return std::isdigit(c) || c == '+' || c == '-' || c == ' ' || c == '(' || c == ')';
+}
+
+// возвращает true, если строка содержит номер телефона формата 8(...) или +7(...) и 11 цифр
+bool isPhoneNumber(const std::string& str, size_t start) {
+    if (str[start] != '8' && !(str[start] == '+' && str[start + 1] == '7')) {
+        return false;
+    }
+
+    size_t i = start;
+    std::string phoneCandidate;
+
+    // тут до 25 символов после стартовой точки
+    while (i < str.length() && phoneCandidate.length() < 25 && isValidChar(str[i])) {
+        phoneCandidate += str[i];
+        ++i;
+    }
+
+    int digitCount = 0;
+    for (char c : phoneCandidate) {
+        if (std::isdigit(c)) digitCount++;
+    }
+
+    if (digitCount != 11) return false;
+
+    // проверка на случай если структура включает скобки и дефисы
+    if (phoneCandidate.find('(') != std::string::npos &&
+        phoneCandidate.find(')') != std::string::npos &&
+        (phoneCandidate.find('-') != std::string::npos || phoneCandidate.find(' ') != std::string::npos)) {
+        std::cout << phoneCandidate << std::endl;
+        return true;
+    }
+
+    return false;
+}
 
 void email() {
     std::string email;
@@ -83,6 +120,29 @@ void html() {
     file.close();
 }
 
+void phones_hard() {
+    std::ifstream file("phones.txt");
+    if (!file) {
+        std::cerr << "Не удалось открыть файл phones.txt" << std::endl;
+        return;
+    }
+
+    std::string line;
+    std::cout << "Распознанные номера телефонов:\n";
+
+    while (std::getline(file, line)) {
+        for (size_t i = 0; i < line.length(); ++i) {
+            if (line[i] == '8' || (line[i] == '+' && i + 1 < line.length() && line[i + 1] == '7')) {
+                isPhoneNumber(line, i);
+            }
+        }
+    }
+
+    file.close();
+
+    
+}
+
 int main()
 {
     SetConsoleCP(1251);
@@ -104,6 +164,9 @@ int main()
         break;
     case 4:
         html();
+        break;
+    case 5:
+        phones_hard();
         break;
     default:
         std::cout << "Неверный выбор." << std::endl;
