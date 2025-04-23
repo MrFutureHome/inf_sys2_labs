@@ -42,7 +42,7 @@ namespace lab2
         public List<bool> Process(string input)
         {
             List<bool> result = new List<bool>();
-            int j = 0; // Текущая позиция в паттерне
+            int j = 0;
 
             for (int i = 0; i < input.Length; i++)
             {
@@ -56,11 +56,10 @@ namespace lab2
                     j++;
                 }
 
-                // Если найдено полное вхождение паттерна
                 if (j == pattern.Length)
                 {
                     result.Add(true);
-                    j = prefixFunction[j - 1]; // Переход для перекрывающихся вхождений
+                    j = prefixFunction[j - 1];
                 }
                 else
                 {
