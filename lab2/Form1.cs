@@ -20,7 +20,7 @@ namespace lab2
         private void findMatches(string pattern, string input)
         {
             PatternMatcher matcher = new PatternMatcher(pattern);
-            List<bool> result = matcher.Process(input);
+            List<bool> result = PatternMatcher.DetectPattern(input, pattern);
             txtBoxOutput.Text = "[" + string.Join(", ", result).ToLower() + "]";
         }
 

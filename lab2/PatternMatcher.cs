@@ -9,63 +9,57 @@ namespace lab2
     public class PatternMatcher
     {
         private readonly string pattern;
-        private readonly int[] prefixFunction;
+        private readonly int[] prefix;
+        private int currentState;
 
         public PatternMatcher(string pattern)
         {
             this.pattern = pattern;
-            this.prefixFunction = BuildPrefixFunction(pattern);
+            this.prefix = ComputePrefixFunction(pattern);
+            this.currentState = 0;
         }
 
-        private int[] BuildPrefixFunction(string pattern)
+        private int[] ComputePrefixFunction(string s)
         {
-            int n = pattern.Length;
-            int[] pi = new int[n];
-            int j = 0;
-
+            int n = s.Length;
+            int[] prefix = new int[n];
+            prefix[0] = 0;
+            int k = 0;
             for (int i = 1; i < n; i++)
             {
-                while (j > 0 && pattern[i] != pattern[j])
-                {
-                    j = pi[j - 1];
-                }
-                if (pattern[i] == pattern[j])
-                {
-                    j++;
-                }
-                pi[i] = j;
+                while (k > 0 && s[k] != s[i])
+                    k = prefix[k - 1];
+                if (s[k] == s[i])
+                    k++;
+                prefix[i] = k;
             }
-
-            return pi;
+            return prefix;
         }
 
-        public List<bool> Process(string input)
+        public bool ProcessChar(char c)
         {
-            List<bool> result = new List<bool>();
-            int j = 0;
+            while (currentState > 0 && pattern[currentState] != c)
+                currentState = prefix[currentState - 1];
 
-            for (int i = 0; i < input.Length; i++)
+            if (pattern[currentState] == c)
+                currentState++;
+
+            if (currentState == pattern.Length)
             {
-                while (j > 0 && input[i] != pattern[j])
-                {
-                    j = prefixFunction[j - 1];
-                }
-
-                if (input[i] == pattern[j])
-                {
-                    j++;
-                }
-
-                if (j == pattern.Length)
-                {
-                    result.Add(true);
-                    j = prefixFunction[j - 1];
-                }
-                else
-                {
-                    result.Add(false);
-                }
+                currentState = prefix[currentState - 1];
+                return true;
             }
+
+            return false;
+        }
+
+        public static List<bool> DetectPattern(string input, string pattern)
+        {
+            PatternMatcher detector = new PatternMatcher(pattern);
+            List<bool> result = new List<bool>();
+
+            foreach (char c in input)
+                result.Add(detector.ProcessChar(c));
 
             return result;
         }

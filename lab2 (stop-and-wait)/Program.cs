@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace lab2__stop_and_wait_
 {
+    //перечисление возможных состояний у отправителя и получателя
     enum SenderState
     {
         Idle,
@@ -41,7 +42,7 @@ namespace lab2__stop_and_wait_
         {
             if (IsLost(packetLossProbability))
             {
-                Console.WriteLine($"[Сеть] Пакет \"{packet.Data}\" потерян");
+                Console.WriteLine($"[Сеть] Пакет #{packet.SequenceNumber} потерян");
                 return false;
             }
 
@@ -51,11 +52,11 @@ namespace lab2__stop_and_wait_
 
                 if (IsLost(ackLossProbability))
                 {
-                    Console.WriteLine($"[Сеть] ACK для пакета \"{packet.Data}\" потерян");
+                    Console.WriteLine($"[Сеть] ACK для пакета #{packet.SequenceNumber} потерян");
                     return false;
                 }
 
-                Console.WriteLine($"[Получатель] Отправлен ACK для пакета \"{packet.Data}\"");
+                Console.WriteLine($"[Получатель] Отправлен ACK для пакета #{packet.SequenceNumber}");
                 return true;
             }
 
@@ -71,6 +72,7 @@ namespace lab2__stop_and_wait_
             {
                 Packet packet = new Packet
                 {
+                    //sequenceNumber чередуется только между 1 и 0, чтобы отличать повторную передачу и новый пакет
                     SequenceNumber = sequenceNumber,
                     Data = $"Data-{packetsSent}"
                 };
@@ -78,7 +80,7 @@ namespace lab2__stop_and_wait_
                 switch (senderState)
                 {
                     case SenderState.Idle:
-                        Console.WriteLine($"\n[Отправитель] Отправка пакета \"{packet.Data}\"");
+                        Console.WriteLine($"\n[Отправитель] Отправка пакета #{packet.SequenceNumber}");
                         senderState = SenderState.WaitingForAck;
                         goto case SenderState.WaitingForAck;
 
@@ -87,7 +89,7 @@ namespace lab2__stop_and_wait_
 
                         if (ackReceived)
                         {
-                            Console.WriteLine($"[Отправитель] Получен ACK для пакета \"{packet.Data}\"");
+                            Console.WriteLine($"[Отправитель] Получен ACK для пакета #{packet.SequenceNumber}");
                             sequenceNumber = 1 - sequenceNumber;
                             packetsSent++;
                             senderState = SenderState.Idle;
@@ -101,7 +103,7 @@ namespace lab2__stop_and_wait_
                         break;
 
                     case SenderState.Timeout:
-                        Console.WriteLine($"[Отправитель] Повторная отправка пакета \"{packet.Data}\"");
+                        Console.WriteLine($"[Отправитель] Повторная отправка пакета #{packet.SequenceNumber}");
                         senderState = SenderState.WaitingForAck;
                         break;
                 }
