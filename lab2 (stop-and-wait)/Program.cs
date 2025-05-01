@@ -7,6 +7,18 @@ using System.Threading.Tasks;
 
 namespace lab2__stop_and_wait_
 {
+    enum SenderState
+    {
+        Idle,
+        WaitingForAck,
+        Timeout
+    }
+
+    enum ReceiverState
+    {
+        WaitingForPacket
+    }
+
     class Packet
     {
         public int SequenceNumber;
@@ -14,65 +26,88 @@ namespace lab2__stop_and_wait_
     }
     internal class Program
     {
+        const int totalPacketsToSend = 5;
+        const float packetLossProbability = 0.2f;
+        const float ackLossProbability = 0.2f;
+        const int timeoutMilliseconds = 1000;
+
         static Random random = new Random();
+        static SenderState senderState = SenderState.Idle;
+        static ReceiverState receiverState = ReceiverState.WaitingForPacket;
 
-        const float packetLossProbability = 0.5f; // вероятность потери пакета (0.0–1.0)
-        const float ackLossProbability = 0.2f;    // вероятность потери ACK (0.0–1.0)
-        const int timeoutMilliseconds = 2000;     // таймаут ожидания ACK
-        const int totalPacketsToSend = 5;         // количество пакетов для передачи
+        static bool IsLost(float probability) => random.NextDouble() < probability;
 
-        static bool IsLost(float lossProbability)
+        static bool ReceiverFSM(Packet packet)
         {
-            return random.NextDouble() < lossProbability;
+            if (IsLost(packetLossProbability))
+            {
+                Console.WriteLine($"[Сеть] Пакет \"{packet.Data}\" потерян");
+                return false;
+            }
+
+            if (receiverState == ReceiverState.WaitingForPacket)
+            {
+                Console.WriteLine($"[Получатель] Получен пакет \"{packet.Data}\"");
+
+                if (IsLost(ackLossProbability))
+                {
+                    Console.WriteLine($"[Сеть] ACK для пакета \"{packet.Data}\" потерян");
+                    return false;
+                }
+
+                Console.WriteLine($"[Получатель] Отправлен ACK для пакета \"{packet.Data}\"");
+                return true;
+            }
+
+            return false;
         }
 
         static void Sender()
         {
+            int packetsSent = 0;
             int sequenceNumber = 0;
-            for (int i = 0; i < totalPacketsToSend;)
+
+            while (packetsSent < totalPacketsToSend)
             {
-                Packet packet = new Packet { SequenceNumber = sequenceNumber, Data = $"Data-{i}" };
-                Console.WriteLine($"\n[Отправитель] Отправка пакета #{packet.SequenceNumber}");
-
-                if (!IsLost(packetLossProbability))
+                Packet packet = new Packet
                 {
-                    Console.WriteLine($"[Сеть] Пакет #{packet.SequenceNumber} доставлен получателю");
-                    bool ackReceived = Receiver(packet);
+                    SequenceNumber = sequenceNumber,
+                    Data = $"Data-{packetsSent}"
+                };
 
-                    if (ackReceived)
-                    {
-                        Console.WriteLine($"[Отправитель] ACK получен для пакета #{packet.SequenceNumber}");
-                        sequenceNumber = 1 - sequenceNumber; // переключение между 0 и 1
-                        i++;
-                    }
-                    else
-                    {
-                        Console.WriteLine($"[Отправитель] ACK потерян. Повторная отправка пакета #{packet.SequenceNumber}");
-                        Thread.Sleep(timeoutMilliseconds);
-                    }
-                }
-                else
+                switch (senderState)
                 {
-                    Console.WriteLine($"[Сеть] Пакет #{packet.SequenceNumber} потерян. Ожидание таймаута...");
-                    Thread.Sleep(timeoutMilliseconds);
+                    case SenderState.Idle:
+                        Console.WriteLine($"\n[Отправитель] Отправка пакета \"{packet.Data}\"");
+                        senderState = SenderState.WaitingForAck;
+                        goto case SenderState.WaitingForAck;
+
+                    case SenderState.WaitingForAck:
+                        bool ackReceived = ReceiverFSM(packet);
+
+                        if (ackReceived)
+                        {
+                            Console.WriteLine($"[Отправитель] Получен ACK для пакета \"{packet.Data}\"");
+                            sequenceNumber = 1 - sequenceNumber;
+                            packetsSent++;
+                            senderState = SenderState.Idle;
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[Отправитель] ACK не получен. Ожидание таймаута...");
+                            Thread.Sleep(timeoutMilliseconds);
+                            senderState = SenderState.Timeout;
+                        }
+                        break;
+
+                    case SenderState.Timeout:
+                        Console.WriteLine($"[Отправитель] Повторная отправка пакета \"{packet.Data}\"");
+                        senderState = SenderState.WaitingForAck;
+                        break;
                 }
             }
 
-            Console.WriteLine("\n[Отправитель] Все пакеты успешно переданы!");
-        }
-
-        static bool Receiver(Packet packet)
-        {
-            Console.WriteLine($"[Получатель] Получен пакет #{packet.SequenceNumber}: \"{packet.Data}\"");
-
-            if (IsLost(ackLossProbability))
-            {
-                Console.WriteLine($"[Сеть] ACK для пакета #{packet.SequenceNumber} потерян");
-                return false;
-            }
-
-            Console.WriteLine($"[Получатель] Отправка ACK для пакета #{packet.SequenceNumber}");
-            return true;
+            Console.WriteLine("\n[Отправитель] Все пакеты успешно переданы.");
         }
 
         static void Main(string[] args)
