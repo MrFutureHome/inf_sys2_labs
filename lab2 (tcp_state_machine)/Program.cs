@@ -25,13 +25,10 @@ namespace lab2__tcp_state_machine_
 
     public sealed class TcpStateMachine : IDisposable
     {
-        private static readonly TimeSpan TIME_WAIT_DURATION = TimeSpan.FromSeconds(30); // 2×MSL (simplified)
+        private static readonly TimeSpan TIME_WAIT_DURATION = TimeSpan.FromSeconds(30); // 2×MSL (упрощённый)
 
         public TcpState CurrentState { get; private set; } = TcpState.CLOSED;
 
-        /// <summary>
-        /// Transition table: (State, Event) → side‑effect & next state.
-        /// </summary>
         private readonly Dictionary<(TcpState, TcpEvent), Action> _transitions;
 
         private readonly Timer _timer = new Timer { AutoReset = false };
@@ -42,9 +39,6 @@ namespace lab2__tcp_state_machine_
             _timer.Elapsed += (_, __) => ProcessEvent(TcpEvent.TIMEOUT);
         }
 
-        /// <summary>
-        /// Feed an external event (packet arrival, syscall, timer) into the FSM.
-        /// </summary>
         public void ProcessEvent(TcpEvent evt)
         {
             if (_transitions.TryGetValue((CurrentState, evt), out var action))
@@ -70,7 +64,6 @@ namespace lab2__tcp_state_machine_
                     CurrentState = to;
                     sideEffect?.Invoke();
 
-                    // Manage TIME‑WAIT timer
                     if (to == TcpState.TIME_WAIT)
                     {
                         _timer.Interval = TIME_WAIT_DURATION.TotalMilliseconds;
@@ -142,7 +135,7 @@ namespace lab2__tcp_state_machine_
         {
             using var fsm = new TcpStateMachine();
 
-            Console.WriteLine("TCP FSM demo. Enter events (e.g., APP_ACTIVE_OPEN, RCV_SYN). Type 'exit' to quit.\n");
+            Console.WriteLine("Демонстрационный вариант эмулятора состояний. Введите 'exit' чтобы выйти.\n");
             while (true)
             {
                 Console.Write("> ");
@@ -153,11 +146,11 @@ namespace lab2__tcp_state_machine_
                 if (Enum.TryParse<TcpEvent>(input?.Trim(), true, out var evt))
                 {
                     fsm.ProcessEvent(evt);
-                    Console.WriteLine($"Current state: {fsm.CurrentState}\n");
+                    Console.WriteLine($"Текущее состояние: {fsm.CurrentState}\n");
                 }
                 else
                 {
-                    Console.WriteLine("Unknown event.\n");
+                    Console.WriteLine("Неизвестное событие.\n");
                 }
             }
         }
