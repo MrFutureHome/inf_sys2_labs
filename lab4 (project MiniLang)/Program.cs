@@ -24,7 +24,7 @@ public enum TokenType
     // Литералы
     Identifier, Number, String,
     // Ключевые слова
-    True, False, Function, If, Then, Else, While, Do, Print, Input, And, Or, Not,
+    True, False, Function, If, Then, Else, While, Do, Return, Print, Input, And, Or, Not,
     // Операторы и знаки препинания
     Plus, Minus, Star, Slash, Equal, EqualEqual, NotEqual,
     Less, LessEqual, Greater, GreaterEqual,
@@ -56,6 +56,7 @@ public sealed class Lexer
         ["else"] = TokenType.Else,
         ["while"] = TokenType.While,
         ["do"] = TokenType.Do,
+        ["return"] = TokenType.Return,
         ["print"] = TokenType.Print,
         ["input"] = TokenType.Input,
         ["and"] = TokenType.And,
@@ -234,6 +235,7 @@ public interface IStmtVisitor
     void VisitIfStmt(IfStmt s);
     void VisitWhileStmt(WhileStmt s);
     void VisitFunctionStmt(FunctionStmt s);
+    void VisitReturnStmt(ReturnStmt s);
 }
 
 public sealed record ExprStmt(IExpr Expression) : IStmt
@@ -250,6 +252,8 @@ public sealed record WhileStmt(IExpr Condition, IStmt Body) : IStmt
 { public void Accept(IStmtVisitor v) => v.VisitWhileStmt(this); }
 public sealed record FunctionStmt(Token Name, List<Token> Params, List<IStmt> Body) : IStmt
 { public void Accept(IStmtVisitor v) => v.VisitFunctionStmt(this); }
+public sealed record ReturnStmt(Token Keyword, IExpr? Value) : IStmt
+{ public void Accept(IStmtVisitor v) => v.VisitReturnStmt(this); }
 #endregion
 
 
@@ -308,11 +312,22 @@ public sealed class Parser
     // <statement>
     private IStmt Statement()
     {
+        if (Match(TokenType.Return)) return ReturnStatement();
         if (Match(TokenType.Print)) return PrintStatement();
         if (Match(TokenType.LeftBrace)) return new BlockStmt(Block());
         if (Match(TokenType.If)) return IfStatement();
         if (Match(TokenType.While)) return WhileStatement();
         return ExpressionStatement();
+    }
+
+    private IStmt ReturnStatement()
+    {
+        var keyword = Previous;
+        IExpr? value = null;
+        if (!Check(TokenType.Semicolon) && !Check(TokenType.Eof))
+            value = Expression();
+        OptionalSemicolon();
+        return new ReturnStmt(keyword, value);
     }
 
     private IStmt WhileStatement()
@@ -574,6 +589,12 @@ public sealed class Environment
         if (_enclosing != null) return _enclosing.Get(name);
         throw new Exception($"Неизвестная переменная '{name.Lexeme}'.");
     }
+
+    public bool TryGet(string name, out object? value)
+    {
+        if (_values.TryGetValue(name, out value)) return true;
+        return _enclosing != null && _enclosing.TryGet(name, out value);
+    }
 }
 
 public interface ICallable { int Arity { get; } object? Call(Interpreter interpreter, List<object?> args); }
@@ -589,6 +610,8 @@ public sealed class MiniFunction : ICallable
         var env = new Environment(_closure);
         for (int i = 0; i < _declaration.Params.Count; i++)
             env.Define(_declaration.Params[i].Lexeme, args[i]);
+
+        var savedLast = interpreter.LastResult;
         try
         {
             interpreter.ExecuteBlock(_declaration.Body, env);
@@ -597,8 +620,10 @@ public sealed class MiniFunction : ICallable
         {
             return ret.Value;
         }
-        return null;
-    }
+
+        if (env.TryGet("return", out var rVar)) return rVar;
+        return interpreter.LastResult;
+        }
     public override string ToString() => $"<fn {_declaration.Name.Lexeme}>";
 }
 
@@ -609,13 +634,20 @@ public sealed class Interpreter : IExprVisitor<object?>, IStmtVisitor
     private Environment _globals = new();
     private Environment _env;
     private readonly bool _dump;
+    private object? _lastResult;
+    public object? LastResult => _lastResult;
 
     public Interpreter(bool dump = false)
     {
         _dump = dump;
         _env = _globals;
         // встроенные функции
-        _globals.Define("print", new NativeFunc(1, args => { Console.WriteLine(args[0]); return null; }));
+        _globals.Define("print", new NativeFunc(1, args =>
+        {
+            try { Console.WriteLine(args[0]); }    // поток может быть уже закрыт
+            catch (ObjectDisposedException) { }
+            return null;
+        }));
         _globals.Define("input", new NativeFunc(1, args => { Console.Write(args[0]); return Console.ReadLine(); }));
     }
 
@@ -632,6 +664,7 @@ public sealed class Interpreter : IExprVisitor<object?>, IStmtVisitor
     {
         var value = e.Value.Accept(this);
         _env.Assign(e.Name, value);
+        _lastResult = value;
         return value;
     }
 
@@ -692,16 +725,17 @@ public sealed class Interpreter : IExprVisitor<object?>, IStmtVisitor
         throw new Exception("Может только вызывать функции.");
     }
 
-    // ------------ StmtVisitor -------------
     public void VisitExprStmt(ExprStmt s)
     {
         var v = s.Expression.Accept(this);
+        _lastResult = v;
         if (_dump) Console.WriteLine($">> {v}");
     }
 
     public void VisitPrintStmt(PrintStmt s)
     {
         var v = s.Expression.Accept(this);
+        _lastResult = v;
         Console.WriteLine(v);
     }
 
@@ -709,6 +743,7 @@ public sealed class Interpreter : IExprVisitor<object?>, IStmtVisitor
     {
         var value = s.Initializer?.Accept(this);
         _env.Define(s.Name.Lexeme, value);
+        _lastResult = value;
     }
 
     public void VisitBlockStmt(BlockStmt s)
@@ -736,6 +771,12 @@ public sealed class Interpreter : IExprVisitor<object?>, IStmtVisitor
     public void VisitWhileStmt(WhileStmt s)
     {
         while (IsTruthy(s.Condition.Accept(this))) s.Body.Accept(this);
+    }
+
+    public void VisitReturnStmt(ReturnStmt s)
+    {
+        var val = s.Value?.Accept(this);
+        throw new ReturnException(val);
     }
 
     public void VisitFunctionStmt(FunctionStmt s)
