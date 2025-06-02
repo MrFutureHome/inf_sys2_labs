@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "lab1 (http)": {
+      "commandName": "Project",
+      "commandLineArgs": "-f custom --config config.json -l test.log --topip 3 --codes"
+    }
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "regex": "^(?<ip>\\S+) \\S+ \\S+ \\[(?<date>[^\\]]+)\\] \"(?<request>[^\"]+)\" (?<status>\\d{3}) (?<size>\\S+)(?: \"(?<referer>[^\"]*)\" \"(?<useragent>[^\"]*)\")?$",
+  "dateFormat": "dd/MMM/yyyy:HH:mm:ss zzz"
+}

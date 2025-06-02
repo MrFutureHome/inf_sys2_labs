@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "lab4 (project MiniLang)", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiniLang.tests", "MiniLang.tests\MiniLang.tests.csproj", "{32F37859-D158-4DCA-A9B4-4BD377B12F68}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "lab1 (http)", "lab1 (http)\lab1 (http).csproj", "{80667F6A-6E93-4EFC-A403-1BE761F32B72}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -97,6 +99,18 @@ Global
 		{32F37859-D158-4DCA-A9B4-4BD377B12F68}.Release|x64.Build.0 = Release|Any CPU
 		{32F37859-D158-4DCA-A9B4-4BD377B12F68}.Release|x86.ActiveCfg = Release|Any CPU
 		{32F37859-D158-4DCA-A9B4-4BD377B12F68}.Release|x86.Build.0 = Release|Any CPU
+		{80667F6A-6E93-4EFC-A403-1BE761F32B72}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{80667F6A-6E93-4EFC-A403-1BE761F32B72}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{80667F6A-6E93-4EFC-A403-1BE761F32B72}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{80667F6A-6E93-4EFC-A403-1BE761F32B72}.Debug|x64.Build.0 = Debug|Any CPU
+		{80667F6A-6E93-4EFC-A403-1BE761F32B72}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{80667F6A-6E93-4EFC-A403-1BE761F32B72}.Debug|x86.Build.0 = Debug|Any CPU
+		{80667F6A-6E93-4EFC-A403-1BE761F32B72}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{80667F6A-6E93-4EFC-A403-1BE761F32B72}.Release|Any CPU.Build.0 = Release|Any CPU
+		{80667F6A-6E93-4EFC-A403-1BE761F32B72}.Release|x64.ActiveCfg = Release|Any CPU
+		{80667F6A-6E93-4EFC-A403-1BE761F32B72}.Release|x64.Build.0 = Release|Any CPU
+		{80667F6A-6E93-4EFC-A403-1BE761F32B72}.Release|x86.ActiveCfg = Release|Any CPU
+		{80667F6A-6E93-4EFC-A403-1BE761F32B72}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
